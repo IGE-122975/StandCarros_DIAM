@@ -1,5 +1,5 @@
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.contrib.auth.models import User
@@ -13,12 +13,8 @@ from .serializers import (
     ReviewSerializer, FavoriteSerializer, UserSerializer
 )
 
-
-# ─────────────────────────────────────────────
-# AUTH — igual ao padrão dos slides
-# ─────────────────────────────────────────────
-
 @api_view(['POST'])
+@authentication_classes([])
 def signup(request):
     username = request.data.get('username')
     password = request.data.get('password')
@@ -40,6 +36,7 @@ def signup(request):
 
 
 @api_view(['POST'])
+@authentication_classes([])
 def login_view(request):
     username = request.data.get('username')
     password = request.data.get('password')
@@ -68,10 +65,7 @@ def user_view(request):
     serializer = UserSerializer(request.user)
     return Response(serializer.data)
 
-
-# ─────────────────────────────────────────────
 # VEHICLES
-# ─────────────────────────────────────────────
 
 @api_view(['GET', 'POST'])
 def vehicles(request):
@@ -146,10 +140,7 @@ def upload_photo(request, pk):
     VehiclePhoto.objects.create(veiculo=veiculo, foto=foto)
     return Response({'msg': 'Foto adicionada.'}, status=status.HTTP_201_CREATED)
 
-
-# ─────────────────────────────────────────────
 # TEST DRIVES
-# ─────────────────────────────────────────────
 
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
@@ -208,10 +199,7 @@ def testdrive_detail(request, pk):
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
-# ─────────────────────────────────────────────
 # PURCHASES
-# ─────────────────────────────────────────────
 
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
@@ -233,10 +221,7 @@ def purchases(request):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
-# ─────────────────────────────────────────────
 # REVIEWS
-# ─────────────────────────────────────────────
 
 @api_view(['GET', 'POST'])
 def reviews(request):
@@ -267,10 +252,7 @@ def review_detail(request, pk):
     review.delete()
     return Response(status=status.HTTP_204_NO_CONTENT)
 
-
-# ─────────────────────────────────────────────
 # FAVORITES
-# ─────────────────────────────────────────────
 
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
