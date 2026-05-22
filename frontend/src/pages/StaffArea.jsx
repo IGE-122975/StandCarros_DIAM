@@ -107,30 +107,43 @@ export default function StaffArea() {
         e.preventDefault();
         setMensagemV('');
 
-        // FormData permite enviar ficheiros (foto) junto com os campos de texto
+        // A API de veículos aceita apenas campos do Vehicle (não aceita o ficheiro "foto").
+        // Se houver foto, é enviada depois via POST /api/vehicles/:id/photos/
         const data = new FormData();
         Object.entries(formV).forEach(([k, v]) => data.append(k, v));
-        if (fotoFicheiro) data.append('foto', fotoFicheiro);
 
-        const headers = {
-            'X-CSRFToken': getCSRFToken(),
-            'Content-Type': 'multipart/form-data',
-        };
+        const headers = { 'X-CSRFToken': getCSRFToken() };
 
         try {
+            let res;
             if (editandoId) {
                 // PUT actualiza o veículo existente
-                const res = await axios.put(`api/vehicles/${editandoId}/`, data, { headers });
+                res = await axios.put(`api/vehicles/${editandoId}/`, data, { headers });
                 setVeiculos(prev => prev.map(v => v.id === editandoId ? res.data : v));
                 setMensagemV('Veículo actualizado com sucesso!');
             } else {
                 // POST cria um novo veículo
-                const res = await axios.post('api/vehicles/', data, { headers });
+                res = await axios.post('api/vehicles/', data, { headers });
                 setVeiculos(prev => [...prev, res.data]);
                 setMensagemV('Veículo criado com sucesso!');
             }
-            cancelarEdicao();
+
+            if (fotoFicheiro) {
+                const fotoData = new FormData();
+                fotoData.append('foto', fotoFicheiro);
+                await axios.post(`api/vehicles/${res.data.id}/photos/`, fotoData, { headers });
+            }
+
+            setEditandoId(null);
+            setFormV(VEICULO_VAZIO);
+            setFotoFicheiro(null);
         } catch (err) {
+            setMensagemV(
+                err.response?.data?.detail ||
+                err.response?.data?.msg ||
+                'Erro ao guardar veículo.'
+            );
+        }
             setMensagemV(err.response?.data?.detail || 'Erro ao guardar veículo.');
         }
     };
