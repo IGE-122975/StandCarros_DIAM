@@ -163,7 +163,7 @@ export default function StaffArea() {
             body.data_hora = novaDataHora[tdId];
         }
         try {
-            const res = await axios.patch(`api/testdrives/${tdId}/`, body, {
+            const res = await axios.put(`api/testdrives/${tdId}/`, body, {
                 headers: { 'X-CSRFToken': getCSRFToken() },
             });
             setTestDrives(prev => prev.map(td => td.id === tdId ? res.data : td));
