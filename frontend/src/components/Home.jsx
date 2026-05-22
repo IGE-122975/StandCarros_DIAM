@@ -1,28 +1,27 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import axios from 'axios';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import {
     Container, Row, Col, Card, CardImg, CardBody,
     CardTitle, CardSubtitle, CardText, Badge
-} from "reactstrap";
+} from 'reactstrap';
 
 axios.defaults.baseURL = import.meta.env.VITE_API_URL;
+
+const fotoBase = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 
 function Home() {
     const [carros, setCarros] = useState([]);
 
     useEffect(() => {
         axios.get('api/vehicles/')
-            .then(response => {
-                setCarros(response.data);
-            })
-            .catch(error => {
-                console.error("Erro ao carregar veículos:", error);
-            });
+            .then(response => setCarros(response.data))
+            .catch(error => console.error('Erro ao carregar veículos:', error));
     }, []);
 
     return (
-        <Container style={{marginTop: "40px", marginBottom: "40px"}}>
+        <Container style={{ marginTop: '40px', marginBottom: '40px' }}>
             <h2 className="mb-4">Veículos Disponíveis</h2>
 
             <Row>
@@ -33,13 +32,15 @@ function Home() {
                                 <CardImg
                                     top
                                     width="100%"
-                                    src={carro.fotos[0].imagem.startsWith('http') ? carro.fotos[0].imagem : `http://127.0.0.1:8000${carro.fotos[0].imagem}`}
+                                    src={carro.fotos[0].foto?.startsWith('http')
+                                        ? carro.fotos[0].foto
+                                        : `${fotoBase}${carro.fotos[0].foto}`}
                                     alt={`${carro.marca} ${carro.modelo}`}
-                                    style={{height: '200px', objectFit: 'cover'}}
+                                    style={{ height: '200px', objectFit: 'cover' }}
                                 />
                             ) : (
                                 <div className="bg-light d-flex justify-content-center align-items-center"
-                                     style={{height: '200px'}}>
+                                    style={{ height: '200px' }}>
                                     <span className="text-muted">Sem imagem</span>
                                 </div>
                             )}
@@ -52,15 +53,19 @@ function Home() {
                                     Ano: {carro.ano} | {carro.quilometragem} km
                                 </CardSubtitle>
 
-                                {/* mt-auto atira o preço e a badge para o fundo do cartão */}
-                                <CardText
-                                    className="mt-auto mb-0 pt-3 border-top d-flex justify-content-between align-items-center">
-                                    <span className="h5 mb-0 text-primary fw-bold">{carro.preco} €</span>
-
-                                    {/* Exemplo de como usar a Badge do reactstrap consoante o estado do carro */}
-                                    <Badge color={carro.estado === 'Vendido' ? 'danger' : 'success'}>
-                                        {carro.estado || 'Disponível'}
-                                    </Badge>
+                                <CardText className="mt-auto mb-0 pt-3 border-top">
+                                    <span className="d-flex justify-content-between align-items-center mb-2">
+                                        <span className="h5 mb-0 text-primary fw-bold">{carro.preco} €</span>
+                                        <Badge color={carro.estado === 'vendido' ? 'danger' : 'success'}>
+                                            {carro.estado === 'vendido' ? 'Vendido' : 'Disponível'}
+                                        </Badge>
+                                    </span>
+                                    <Link
+                                        to={`/veiculo/${carro.id}`}
+                                        className="btn btn-outline-primary btn-sm w-100"
+                                    >
+                                        Ver Detalhes
+                                    </Link>
                                 </CardText>
                             </CardBody>
                         </Card>
@@ -68,7 +73,6 @@ function Home() {
                 ))}
             </Row>
 
-            {/* Mensagem caso a base de dados esteja vazia ou o Django esteja desligado */}
             {carros.length === 0 && (
                 <div className="text-center text-muted mt-5">
                     <p>A carregar veículos...</p>

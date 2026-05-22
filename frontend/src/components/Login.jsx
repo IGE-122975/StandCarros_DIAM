@@ -14,9 +14,10 @@ export default function Login() {
             const response = await axios.post('api/login/', { username, password });
 
             localStorage.setItem('username', response.data.username);
+            localStorage.setItem('is_staff', response.data.is_staff);
 
             alert(response.data.msg);
-            navigate('/'); // Redireciona para a página principal
+            navigate('/');
 
             // Força o recarregamento do Header para mostrar o estado logado
             window.dispatchEvent(new Event("storage"));
