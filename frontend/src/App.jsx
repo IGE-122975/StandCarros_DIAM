@@ -5,6 +5,11 @@ import Home from './components/Home';
 import axios from "axios";
 import Login from './components/Login';
 import Registo from './components/Register';
+import RotaProtegida from './components/RotaProtegida';
+import VehicleDetail from './pages/VehicleDetail';
+import Favorites from './pages/Favorites';
+import MinhaArea from './pages/MinhaArea';
+import StaffArea from './pages/StaffArea';
 
 axios.defaults.baseURL = import.meta.env.VITE_API_URL;
 axios.defaults.withCredentials = true;
@@ -29,6 +34,16 @@ function App() {
             <Route path="/sobre" element={<Sobre />} />
             <Route path="/login" element={<Login />} />
             <Route path="/registo" element={<Registo />} />
+            <Route path="/veiculo/:id" element={<VehicleDetail />} />
+            <Route path="/favoritos" element={
+              <RotaProtegida><Favorites /></RotaProtegida>
+            } />
+            <Route path="/minha-area" element={
+              <RotaProtegida><MinhaArea /></RotaProtegida>
+            } />
+            <Route path="/staff" element={
+              <RotaProtegida staffOnly={true}><StaffArea /></RotaProtegida>
+            } />
           </Routes>
         </main>
         <Footer />
