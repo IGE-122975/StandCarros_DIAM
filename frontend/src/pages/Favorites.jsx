@@ -6,8 +6,10 @@ import {
     CardTitle, CardSubtitle, CardText, Button, Badge
 } from 'reactstrap';
 import { getCSRFToken } from '../utils/csrf';
+import { COR_ESTADO_VEICULO, LABEL_ESTADO_VEICULO } from '../utils/estados';
 
-const fotoBase = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+// Com o proxy do Vite, /media/* é servido pela mesma origem.
+const fotoBase = '';
 
 export default function Favorites() {
     const [favoritos, setFavoritos] = useState([]);
@@ -15,7 +17,7 @@ export default function Favorites() {
 
     // Carrega a lista de favoritos do utilizador autenticado
     useEffect(() => {
-        axios.get('api/favorites/')
+        axios.get('/api/favorites/')
             .then(res => {
                 setFavoritos(res.data);
                 setLoading(false);
@@ -26,7 +28,7 @@ export default function Favorites() {
     // Remove um favorito: chama DELETE e actualiza o estado local sem recarregar a página
     const remover = async (favId) => {
         try {
-            await axios.delete(`api/favorites/${favId}/`, {
+            await axios.delete(`/api/favorites/${favId}/`, {
                 headers: { 'X-CSRFToken': getCSRFToken() },
             });
             // Filtra o favorito removido da lista, actualizando o estado
@@ -82,8 +84,8 @@ export default function Favorites() {
                                         <CardText className="mt-auto mb-0 pt-3 border-top">
                                             <span className="d-flex justify-content-between align-items-center mb-2">
                                                 <span className="h5 mb-0 text-primary fw-bold">{v.preco} €</span>
-                                                <Badge color={v.estado === 'vendido' ? 'danger' : 'success'}>
-                                                    {v.estado === 'vendido' ? 'Vendido' : 'Disponível'}
+                                                <Badge color={COR_ESTADO_VEICULO[v.estado] || 'secondary'}>
+                                                    {LABEL_ESTADO_VEICULO[v.estado] || v.estado}
                                                 </Badge>
                                             </span>
                                             <div className="d-flex gap-2">

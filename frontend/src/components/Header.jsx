@@ -23,7 +23,7 @@ export default function Header() {
 
     const handleLogout = async () => {
         try {
-            await axios.get('api/logout/');
+            await axios.get('/api/logout/');
             localStorage.removeItem('username');
             localStorage.removeItem('is_staff');
             setLoggedInUser(null);
@@ -43,14 +43,14 @@ export default function Header() {
                     <Nav className="me-auto" navbar>
                         <NavItem><Link className="nav-link" to="/">Início</Link></NavItem>
                         <NavItem><Link className="nav-link" to="/sobre">Sobre Nós</Link></NavItem>
-                        {loggedInUser && (
+                        {loggedInUser && !isStaff && (
                             <>
                                 <NavItem><Link className="nav-link" to="/favoritos">Favoritos</Link></NavItem>
                                 <NavItem><Link className="nav-link" to="/minha-area">A Minha Área</Link></NavItem>
-                                {isStaff && (
-                                    <NavItem><Link className="nav-link" to="/staff">Staff</Link></NavItem>
-                                )}
                             </>
+                        )}
+                        {loggedInUser && isStaff && (
+                            <NavItem><Link className="nav-link" to="/staff">Staff</Link></NavItem>
                         )}
                     </Nav>
 

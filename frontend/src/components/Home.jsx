@@ -6,16 +6,16 @@ import {
     Container, Row, Col, Card, CardImg, CardBody,
     CardTitle, CardSubtitle, CardText, Badge
 } from 'reactstrap';
+import { COR_ESTADO_VEICULO, LABEL_ESTADO_VEICULO } from '../utils/estados';
 
-axios.defaults.baseURL = import.meta.env.VITE_API_URL;
-
-const fotoBase = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+// Com o proxy do Vite, /media/* é servido pela mesma origem.
+const fotoBase = '';
 
 function Home() {
     const [carros, setCarros] = useState([]);
 
     useEffect(() => {
-        axios.get('api/vehicles/')
+        axios.get('/api/vehicles/')
             .then(response => setCarros(response.data))
             .catch(error => console.error('Erro ao carregar veículos:', error));
     }, []);
@@ -56,8 +56,8 @@ function Home() {
                                 <CardText className="mt-auto mb-0 pt-3 border-top">
                                     <span className="d-flex justify-content-between align-items-center mb-2">
                                         <span className="h5 mb-0 text-primary fw-bold">{carro.preco} €</span>
-                                        <Badge color={carro.estado === 'vendido' ? 'danger' : 'success'}>
-                                            {carro.estado === 'vendido' ? 'Vendido' : 'Disponível'}
+                                        <Badge color={COR_ESTADO_VEICULO[carro.estado] || 'secondary'}>
+                                            {LABEL_ESTADO_VEICULO[carro.estado] || carro.estado}
                                         </Badge>
                                     </span>
                                     <Link

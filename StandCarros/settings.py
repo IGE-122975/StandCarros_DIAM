@@ -60,6 +60,16 @@ CORS_ALLOWED_ORIGINS = ['http://localhost:5173',
                         "http://127.0.0.1:5173"
                         ]
 
+# Origens confiáveis para CSRF — necessário porque o proxy do Vite faz com que
+# o Origin header chegue como localhost:5173 mas o Host como 127.0.0.1:8000.
+# Sem isto, qualquer POST/PUT/DELETE autenticado falha com 403 (CSRF).
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
+]
+
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.SessionAuthentication',

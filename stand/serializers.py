@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Vehicle, VehiclePhoto, TestDrive, Purchase, Review, Favorite
+from .models import Vehicle, VehiclePhoto, TestDrive, Purchase, Review, Favorite, Lead
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -55,10 +55,14 @@ class TestDriveSerializer(serializers.ModelSerializer):
             'id', 'utilizador', 'veiculo', 'veiculo_detalhe',
             'data_hora', 'estado', 'criado_em'
         ]
-        read_only_fields = ['estado', 'criado_em']
+        # 'estado' é editável para o admin (via PUT) — controlado na view.
+        # No create() ignoramos o estado vindo do cliente para evitar bypass.
+        read_only_fields = ['criado_em']
 
     def create(self, validated_data):
         utilizador = self.context['request'].user
+        # Cliente não pode definir o estado inicial — fica sempre 'pendente'
+        validated_data.pop('estado', None)
         return TestDrive.objects.create(utilizador=utilizador, **validated_data)
 
 
@@ -108,3 +112,29 @@ class FavoriteSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         utilizador = self.context['request'].user
         return Favorite.objects.create(utilizador=utilizador, **validated_data)
+
+
+class LeadSerializer(serializers.ModelSerializer):
+    utilizador = UserSerializer(read_only=True)
+    veiculo_detalhe = VehicleSerializer(source='veiculo', read_only=True)
+    veiculo = serializers.PrimaryKeyRelatedField(
+        queryset=Vehicle.objects.all(), write_only=True
+    )
+
+    class Meta:
+        model = Lead
+        fields = [
+            'id', 'utilizador', 'veiculo', 'veiculo_detalhe',
+            'nome', 'email', 'telefone', 'mensagem',
+            'estado', 'criado_em'
+        ]
+        # 'estado' é editável (só staff faz PUT — controlado na view).
+        # Por defeito é 'novo' (do modelo), por isso POST anónimo continua a funcionar.
+        read_only_fields = ['criado_em']
+
+    def create(self, validated_data):
+        request = self.context.get('request')
+        user = request.user if request and request.user.is_authenticated else None
+        # Estado inicial é sempre 'novo' — não permitir que o cliente o defina
+        validated_data.pop('estado', None)
+        return Lead.objects.create(utilizador=user, **validated_data)

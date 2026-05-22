@@ -20,7 +20,7 @@ export default function Registo() {
     const handleRegisto = async (e) => {
         e.preventDefault();
         try {
-            const response = await axios.post('api/signup/', formData);
+            const response = await axios.post('/api/signup/', formData);
             alert(response.data.msg);
             navigate('/login');
         } catch (error) {

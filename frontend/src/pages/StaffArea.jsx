@@ -8,6 +8,7 @@ import {
     Table, Card, CardBody
 } from 'reactstrap';
 import { getCSRFToken } from '../utils/csrf';
+import { COR_ESTADO_VEICULO, LABEL_ESTADO_VEICULO } from '../utils/estados';
 
 moment.locale('pt');
 
@@ -28,7 +29,19 @@ const LABEL_ESTADO = {
 };
 
 // Secções da área de staff — funciona como navegação por abas
-const SECCOES = ['Veículos', 'Test-Drives', 'Avaliações'];
+const SECCOES = ['Veículos', 'Test-Drives', 'Avaliações', 'Leads'];
+
+const COR_LEAD = {
+    novo: 'primary',
+    contactado: 'info',
+    fechado: 'secondary',
+};
+
+const LABEL_LEAD = {
+    novo: 'Novo',
+    contactado: 'Contactado',
+    fechado: 'Fechado',
+};
 
 const VEICULO_VAZIO = {
     marca: '', modelo: '', ano: '', preco: '',
@@ -57,26 +70,60 @@ export default function StaffArea() {
     const [loadingRev, setLoadingRev] = useState(true);
     const [mensagemRev, setMensagemRev] = useState('');
 
-    // Carrega veículos
-    useEffect(() => {
-        axios.get('api/vehicles/')
+    // ── Estado: Leads ─────────────────────────────────────────────────────
+    const [leads, setLeads] = useState([]);
+    const [loadingLeads, setLoadingLeads] = useState(true);
+    const [mensagemLead, setMensagemLead] = useState('');
+
+    // Funções de recarregamento — usadas no mount e ao trocar de aba
+    const recarregarVeiculos = () => {
+        setLoadingV(true);
+        axios.get('/api/vehicles/')
             .then(res => { setVeiculos(res.data); setLoadingV(false); })
             .catch(() => setLoadingV(false));
-    }, []);
+    };
 
-    // Carrega test-drives (todos, visível para staff)
-    useEffect(() => {
-        axios.get('api/testdrives/')
+    const recarregarTD = () => {
+        setLoadingTD(true);
+        axios.get('/api/testdrives/')
             .then(res => { setTestDrives(res.data); setLoadingTD(false); })
             .catch(() => setLoadingTD(false));
-    }, []);
+    };
 
-    // Carrega reviews (todas)
-    useEffect(() => {
-        axios.get('api/reviews/')
+    const recarregarReviews = () => {
+        setLoadingRev(true);
+        axios.get('/api/reviews/')
             .then(res => { setReviews(res.data); setLoadingRev(false); })
             .catch(() => setLoadingRev(false));
-    }, []);
+    };
+
+    const recarregarLeads = () => {
+        setLoadingLeads(true);
+        axios.get('/api/leads/')
+            .then(res => { setLeads(res.data); setLoadingLeads(false); })
+            .catch(() => setLoadingLeads(false));
+    };
+
+    // Recarrega os dados da aba activa sempre que:
+    //   1. O utilizador troca de aba dentro da página
+    //   2. O tab do browser volta a ganhar foco (visibilitychange)
+    // Isto garante que o staff vê dados frescos (ex.: novo lead submetido entretanto).
+    useEffect(() => {
+        const recarregarSeccao = () => {
+            if (seccao === 'Veículos') recarregarVeiculos();
+            else if (seccao === 'Test-Drives') recarregarTD();
+            else if (seccao === 'Avaliações') recarregarReviews();
+            else if (seccao === 'Leads') recarregarLeads();
+        };
+
+        recarregarSeccao();
+
+        const handleVisibility = () => {
+            if (document.visibilityState === 'visible') recarregarSeccao();
+        };
+        document.addEventListener('visibilitychange', handleVisibility);
+        return () => document.removeEventListener('visibilitychange', handleVisibility);
+    }, [seccao]);
 
     // ── Handlers: Veículos ────────────────────────────────────────────────
 
@@ -118,12 +165,12 @@ export default function StaffArea() {
             let res;
             if (editandoId) {
                 // PUT actualiza o veículo existente
-                res = await axios.put(`api/vehicles/${editandoId}/`, data, { headers });
+                res = await axios.put(`/api/vehicles/${editandoId}/`, data, { headers });
                 setVeiculos(prev => prev.map(v => v.id === editandoId ? res.data : v));
                 setMensagemV('Veículo actualizado com sucesso!');
             } else {
                 // POST cria um novo veículo
-                res = await axios.post('api/vehicles/', data, { headers });
+                res = await axios.post('/api/vehicles/', data, { headers });
                 setVeiculos(prev => [...prev, res.data]);
                 setMensagemV('Veículo criado com sucesso!');
             }
@@ -131,7 +178,7 @@ export default function StaffArea() {
             if (fotoFicheiro) {
                 const fotoData = new FormData();
                 fotoData.append('foto', fotoFicheiro);
-                await axios.post(`api/vehicles/${res.data.id}/photos/`, fotoData, { headers });
+                await axios.post(`/api/vehicles/${res.data.id}/photos/`, fotoData, { headers });
             }
 
             setEditandoId(null);
@@ -144,14 +191,12 @@ export default function StaffArea() {
                 'Erro ao guardar veículo.'
             );
         }
-            setMensagemV(err.response?.data?.detail || 'Erro ao guardar veículo.');
-        }
     };
 
     const eliminarVeiculo = async (id) => {
         if (!window.confirm('Tens a certeza que queres eliminar este veículo?')) return;
         try {
-            await axios.delete(`api/vehicles/${id}/`, {
+            await axios.delete(`/api/vehicles/${id}/`, {
                 headers: { 'X-CSRFToken': getCSRFToken() },
             });
             setVeiculos(prev => prev.filter(v => v.id !== id));
@@ -176,7 +221,7 @@ export default function StaffArea() {
             body.data_hora = novaDataHora[tdId];
         }
         try {
-            const res = await axios.put(`api/testdrives/${tdId}/`, body, {
+            const res = await axios.put(`/api/testdrives/${tdId}/`, body, {
                 headers: { 'X-CSRFToken': getCSRFToken() },
             });
             setTestDrives(prev => prev.map(td => td.id === tdId ? res.data : td));
@@ -191,13 +236,43 @@ export default function StaffArea() {
     const eliminarReview = async (reviewId) => {
         setMensagemRev('');
         try {
-            await axios.delete(`api/reviews/${reviewId}/`, {
+            await axios.delete(`/api/reviews/${reviewId}/`, {
                 headers: { 'X-CSRFToken': getCSRFToken() },
             });
             setReviews(prev => prev.filter(r => r.id !== reviewId));
             setMensagemRev('Avaliação eliminada.');
         } catch (err) {
             setMensagemRev('Erro ao eliminar avaliação.');
+        }
+    };
+
+    // ── Handlers: Leads ───────────────────────────────────────────────────
+
+    const actualizarEstadoLead = async (leadId, novoEstado) => {
+        setMensagemLead('');
+        try {
+            const res = await axios.put(`/api/leads/${leadId}/`,
+                { estado: novoEstado },
+                { headers: { 'X-CSRFToken': getCSRFToken() } }
+            );
+            setLeads(prev => prev.map(l => l.id === leadId ? res.data : l));
+            setMensagemLead(`✓ Pedido marcado como "${LABEL_LEAD[novoEstado] || novoEstado}".`);
+        } catch (err) {
+            setMensagemLead('Erro ao actualizar pedido.');
+        }
+    };
+
+    const eliminarLead = async (leadId) => {
+        if (!window.confirm('Tens a certeza que queres eliminar este pedido?')) return;
+        setMensagemLead('');
+        try {
+            await axios.delete(`/api/leads/${leadId}/`, {
+                headers: { 'X-CSRFToken': getCSRFToken() },
+            });
+            setLeads(prev => prev.filter(l => l.id !== leadId));
+            setMensagemLead('Pedido eliminado.');
+        } catch (err) {
+            setMensagemLead('Erro ao eliminar pedido.');
         }
     };
 
@@ -260,6 +335,7 @@ export default function StaffArea() {
                                             <Input type="select" name="estado" value={formV.estado}
                                                 onChange={handleFormVChange}>
                                                 <option value="disponivel">Disponível</option>
+                                                <option value="reservado">Reservado</option>
                                                 <option value="vendido">Vendido</option>
                                             </Input>
                                         </FormGroup>
@@ -333,8 +409,8 @@ export default function StaffArea() {
                                         <td>{v.ano}</td>
                                         <td>{Number(v.preco).toLocaleString('pt-PT')} €</td>
                                         <td>
-                                            <Badge color={v.estado === 'disponivel' ? 'success' : 'danger'}>
-                                                {v.estado === 'disponivel' ? 'Disponível' : 'Vendido'}
+                                            <Badge color={COR_ESTADO_VEICULO[v.estado] || 'secondary'}>
+                                                {LABEL_ESTADO_VEICULO[v.estado] || v.estado}
                                             </Badge>
                                         </td>
                                         <td>
@@ -500,6 +576,96 @@ export default function StaffArea() {
                                         </td>
                                     </tr>
                                 ))}
+                            </tbody>
+                        </Table>
+                    )}
+                </div>
+            )}
+
+            {/* ══ SECÇÃO: LEADS ═════════════════════════════════════════════ */}
+            {seccao === 'Leads' && (
+                <div>
+                    <div className="d-flex justify-content-between align-items-center mb-3">
+                        <h5 className="mb-0">Pedidos de Informação</h5>
+                        <Button color="secondary" outline size="sm" onClick={recarregarLeads}>
+                            🔄 Atualizar
+                        </Button>
+                    </div>
+                    {mensagemLead && (
+                        <p className={`small ${mensagemLead.includes('Erro') ? 'text-danger' : 'text-success'}`}>
+                            {mensagemLead}
+                        </p>
+                    )}
+
+                    {loadingLeads ? <p>A carregar...</p> : leads.length === 0 ? (
+                        <p className="text-muted">Não existem pedidos de informação.</p>
+                    ) : (
+                        <Table responsive hover bordered size="sm">
+                            <thead className="table-dark">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Data</th>
+                                    <th>Nome</th>
+                                    <th>Contacto</th>
+                                    <th>Veículo</th>
+                                    <th>Mensagem</th>
+                                    <th>Estado</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {leads.map(l => {
+                                    const v = l.veiculo_detalhe;
+                                    return (
+                                        <tr key={l.id}>
+                                            <td>{l.id}</td>
+                                            <td className="small">
+                                                {moment(l.criado_em).format('D MMM YYYY, HH:mm')}
+                                            </td>
+                                            <td>
+                                                <strong>{l.nome}</strong>
+                                                {l.utilizador && (
+                                                    <div className="text-muted small">
+                                                        ({l.utilizador.username})
+                                                    </div>
+                                                )}
+                                            </td>
+                                            <td className="small">
+                                                <div>{l.email}</div>
+                                                {l.telefone && <div className="text-muted">{l.telefone}</div>}
+                                            </td>
+                                            <td>{v ? `${v.marca} ${v.modelo}` : `#${l.veiculo}`}</td>
+                                            <td style={{ maxWidth: '250px', whiteSpace: 'pre-wrap' }}>
+                                                {l.mensagem}
+                                            </td>
+                                            <td>
+                                                <Badge color={COR_LEAD[l.estado] || 'secondary'}>
+                                                    {LABEL_LEAD[l.estado] || l.estado}
+                                                </Badge>
+                                            </td>
+                                            <td>
+                                                <div className="d-flex flex-wrap gap-1">
+                                                    {l.estado === 'novo' && (
+                                                        <Button color="info" size="sm"
+                                                            onClick={() => actualizarEstadoLead(l.id, 'contactado')}>
+                                                            Marcar Contactado
+                                                        </Button>
+                                                    )}
+                                                    {l.estado === 'contactado' && (
+                                                        <Button color="secondary" size="sm"
+                                                            onClick={() => actualizarEstadoLead(l.id, 'fechado')}>
+                                                            Fechar
+                                                        </Button>
+                                                    )}
+                                                    <Button color="danger" size="sm"
+                                                        onClick={() => eliminarLead(l.id)}>
+                                                        Eliminar
+                                                    </Button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </Table>
                     )}

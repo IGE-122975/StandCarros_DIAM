@@ -2,9 +2,10 @@ import { useNavigate } from 'react-router-dom';
 import { Container, Button } from 'reactstrap';
 
 // Componente que envolve páginas protegidas.
-// Se o utilizador não está autenticado, mostra um aviso em vez da página pedida.
-// Se staffOnly=true, também verifica se o utilizador é staff.
-export default function RotaProtegida({ children, staffOnly = false }) {
+// - Sem sessão → mostra aviso de login.
+// - staffOnly=true → só staff pode aceder.
+// - clienteOnly=true → só clientes (não-staff) podem aceder.
+export default function RotaProtegida({ children, staffOnly = false, clienteOnly = false }) {
     const navigate = useNavigate();
     const username = localStorage.getItem('username');
     const isStaff = localStorage.getItem('is_staff') === 'true';
@@ -25,6 +26,16 @@ export default function RotaProtegida({ children, staffOnly = false }) {
                 <h4>Sem Permissão</h4>
                 <p className="text-muted">Esta página é exclusiva para a equipa de staff.</p>
                 <Button color="secondary" onClick={() => navigate('/')}>Voltar ao Início</Button>
+            </Container>
+        );
+    }
+
+    if (clienteOnly && isStaff) {
+        return (
+            <Container className="mt-5 text-center">
+                <h4>Página para Clientes</h4>
+                <p className="text-muted">Esta área é destinada a clientes. Como membro do staff, usa a área "Staff".</p>
+                <Button color="secondary" onClick={() => navigate('/staff')}>Ir para Staff</Button>
             </Container>
         );
     }

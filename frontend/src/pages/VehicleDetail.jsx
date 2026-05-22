@@ -7,16 +7,10 @@ import {
     Card, CardBody, Table
 } from 'reactstrap';
 import { getCSRFToken } from '../utils/csrf';
+import { COR_ESTADO_VEICULO, LABEL_ESTADO_VEICULO } from '../utils/estados';
 
-const fotoBase = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
-
-const COR_ESTADO = {
-    pendente: 'warning',
-    confirmado: 'success',
-    concluido: 'info',
-    rejeitado: 'danger',
-    reagendado: 'secondary',
-};
+// Com o proxy do Vite, /media/* é servido pela mesma origem.
+const fotoBase = '';
 
 export default function VehicleDetail() {
     // useParams lê o segmento dinâmico ":id" da URL — ex: /veiculo/3 → id = "3"
@@ -34,11 +28,17 @@ export default function VehicleDetail() {
     // Favorito — guarda o objecto inteiro (necessário para saber o ID ao remover)
     const [favorito, setFavorito] = useState(null);
     const [favLoading, setFavLoading] = useState(false);
+    const [favMensagem, setFavMensagem] = useState('');
 
     // Formulário de test-drive
     const [mostrarTD, setMostrarTD] = useState(false);
     const [dataHora, setDataHora] = useState('');
     const [tdMensagem, setTdMensagem] = useState('');
+
+    // Pedido de informação (Lead)
+    const [mostrarLead, setMostrarLead] = useState(false);
+    const [leadForm, setLeadForm] = useState({ nome: '', email: '', telefone: '', mensagem: '' });
+    const [leadMensagem, setLeadMensagem] = useState('');
 
     // Reviews
     const [reviews, setReviews] = useState([]);
@@ -55,9 +55,16 @@ export default function VehicleDetail() {
     // useEffect com [id] corre quando o componente monta e sempre que "id" muda.
     useEffect(() => {
         setLoading(true);
-        axios.get(`api/vehicles/${id}/`)
+        axios.get(`/api/vehicles/${id}/`)
             .then(res => {
-                setVeiculo(res.data);
+                // Defensive: garantir que o objecto tem a estrutura esperada
+                if (!res.data || typeof res.data !== 'object' || !res.data.id) {
+                    setErro('Resposta inesperada do servidor. Verifica se o backend Django está a correr.');
+                    setLoading(false);
+                    return;
+                }
+                // Garantir que fotos é sempre um array para evitar crashes
+                setVeiculo({ ...res.data, fotos: res.data.fotos || [] });
                 setLoading(false);
             })
             .catch(() => {
@@ -68,7 +75,7 @@ export default function VehicleDetail() {
 
     // ── Carregar reviews (público) ───────────────────────────────────────────
     useEffect(() => {
-        axios.get(`api/reviews/?veiculo=${id}`)
+        axios.get(`/api/reviews/?veiculo=${id}`)
             .then(res => {
                 setReviews(res.data);
                 const minha = res.data.find(r => r.utilizador.username === username);
@@ -81,14 +88,14 @@ export default function VehicleDetail() {
     useEffect(() => {
         if (!isLoggedIn) return;
 
-        axios.get('api/favorites/')
+        axios.get('/api/favorites/')
             .then(res => {
                 const fav = res.data.find(f => f.veiculo_detalhe?.id === parseInt(id));
                 setFavorito(fav || null);
             })
             .catch(() => {});
 
-        axios.get('api/testdrives/')
+        axios.get('/api/testdrives/')
             .then(res => {
                 const concluido = res.data.some(
                     td => td.veiculo_detalhe?.id === parseInt(id) && td.estado === 'concluido'
@@ -102,30 +109,44 @@ export default function VehicleDetail() {
     // O truque "(idx + delta + length) % length" garante que o índice é circular
     // (ao passar do último volta ao primeiro, e vice-versa) — padrão dos apontamentos.
     const mudarFoto = (delta) => {
-        setFotoIdx(prev => (prev + delta + veiculo.fotos.length) % veiculo.fotos.length);
+        const total = veiculo?.fotos?.length || 0;
+        if (total === 0) return;
+        setFotoIdx(prev => (prev + delta + total) % total);
     };
 
     // ── Toggle favorito ──────────────────────────────────────────────────────
     const toggleFavorito = async () => {
         setFavLoading(true);
+        setFavMensagem('');
         try {
             if (favorito) {
                 // DELETE — remove o registo de favorito pelo seu ID
-                await axios.delete(`api/favorites/${favorito.id}/`, {
+                await axios.delete(`/api/favorites/${favorito.id}/`, {
                     headers: { 'X-CSRFToken': getCSRFToken() },
                 });
                 setFavorito(null);
+                setFavMensagem('Removido dos favoritos.');
             } else {
                 // POST — cria um novo favorito para este veículo
                 const res = await axios.post(
-                    'api/favorites/',
+                    '/api/favorites/',
                     { veiculo: parseInt(id) },
                     { headers: { 'X-CSRFToken': getCSRFToken() } }
                 );
                 setFavorito(res.data);
+                setFavMensagem('Adicionado aos favoritos!');
             }
         } catch (err) {
             console.error('Erro ao actualizar favorito:', err);
+            if (err.response?.status === 403) {
+                setFavMensagem('Sessão expirada. Faz login novamente.');
+            } else {
+                setFavMensagem(
+                    err.response?.data?.detail ||
+                    err.response?.data?.msg ||
+                    'Erro ao actualizar favorito.'
+                );
+            }
         }
         setFavLoading(false);
     };
@@ -135,20 +156,55 @@ export default function VehicleDetail() {
         e.preventDefault();
         try {
             await axios.post(
-                'api/testdrives/',
+                '/api/testdrives/',
                 { veiculo: parseInt(id), data_hora: dataHora },
                 { headers: { 'X-CSRFToken': getCSRFToken() } }
             );
-            setTdMensagem('Test-drive agendado com sucesso!');
+            setTdMensagem('Test-drive agendado com sucesso! Aguarda confirmação do stand.');
             setMostrarTD(false);
             setDataHora('');
         } catch (err) {
-            setTdMensagem(
-                err.response?.data?.msg ||
+            if (err.response?.status === 401 || err.response?.status === 403) {
+                setTdMensagem('Sessão inválida. Por favor faz login novamente.');
+            } else {
+                // Erros de validação podem vir em formatos diferentes (dict, list, string)
+                const data = err.response?.data;
+                let mensagem = 'Erro ao agendar test-drive.';
+                if (data?.detail) mensagem = data.detail;
+                else if (data?.data_hora) mensagem = `Data/hora: ${data.data_hora}`;
+                else if (data?.msg) mensagem = data.msg;
+                else if (typeof data === 'string') mensagem = data;
+                setTdMensagem(mensagem);
+            }
+        }
+    };
+
+    // ── Submeter pedido de informação (Lead) ────────────────────────────────
+    const submeterLead = async (e) => {
+        e.preventDefault();
+        setLeadMensagem('');
+        try {
+            await axios.post(
+                '/api/leads/',
+                { veiculo: parseInt(id), ...leadForm },
+                { headers: { 'X-CSRFToken': getCSRFToken() } }
+            );
+            setLeadMensagem('Pedido enviado! Entraremos em contacto em breve.');
+            setLeadForm({ nome: '', email: '', telefone: '', mensagem: '' });
+            setMostrarLead(false);
+        } catch (err) {
+            setLeadMensagem(
                 err.response?.data?.detail ||
-                'Erro ao agendar test-drive.'
+                err.response?.data?.msg ||
+                'Erro ao enviar pedido.'
             );
         }
+    };
+
+    // ── Descarregar PDF da ficha técnica ────────────────────────────────────
+    const descarregarPDF = () => {
+        // Usa path absoluto — o proxy do Vite reencaminha para o Django
+        window.open(`/api/vehicles/${id}/pdf/`, '_blank');
     };
 
     // ── Submeter avaliação ───────────────────────────────────────────────────
@@ -156,7 +212,7 @@ export default function VehicleDetail() {
         e.preventDefault();
         try {
             const res = await axios.post(
-                'api/reviews/',
+                '/api/reviews/',
                 { veiculo: parseInt(id), classificacao: novaClassif, comentario: novoComent },
                 { headers: { 'X-CSRFToken': getCSRFToken() } }
             );
@@ -188,12 +244,12 @@ export default function VehicleDetail() {
             <Row>
                 {/* ── Galeria de fotos ──────────────────────────────────────── */}
                 <Col md="6" className="mb-4">
-                    {veiculo.fotos.length > 0 ? (
+                    {(veiculo.fotos?.length || 0) > 0 ? (
                         <div>
                             <img
-                                src={veiculo.fotos[fotoIdx].foto?.startsWith('http')
+                                src={veiculo.fotos[fotoIdx]?.foto?.startsWith('http')
                                     ? veiculo.fotos[fotoIdx].foto
-                                    : `${fotoBase}${veiculo.fotos[fotoIdx].foto}`}
+                                    : `${fotoBase}${veiculo.fotos[fotoIdx]?.foto || ''}`}
                                 alt={`${veiculo.marca} ${veiculo.modelo}`}
                                 style={{ width: '100%', height: '350px', objectFit: 'cover', borderRadius: '8px' }}
                             />
@@ -217,8 +273,8 @@ export default function VehicleDetail() {
                 <Col md="6">
                     <div className="d-flex justify-content-between align-items-start mb-2">
                         <h2 className="fw-bold mb-0">{veiculo.marca} {veiculo.modelo}</h2>
-                        <Badge color={veiculo.estado === 'disponivel' ? 'success' : 'danger'} className="ms-2 mt-1">
-                            {veiculo.estado === 'disponivel' ? 'Disponível' : 'Vendido'}
+                        <Badge color={COR_ESTADO_VEICULO[veiculo.estado] || 'secondary'} className="ms-2 mt-1">
+                            {LABEL_ESTADO_VEICULO[veiculo.estado] || veiculo.estado}
                         </Badge>
                     </div>
 
@@ -257,19 +313,52 @@ export default function VehicleDetail() {
                             onClick={toggleFavorito}
                             disabled={favLoading}
                         >
-                            {favorito ? '♥ Nos Favoritos' : '♡ Adicionar aos Favoritos'}
+                            {favLoading ? '...' : (favorito ? '♥ Nos Favoritos' : '♡ Adicionar aos Favoritos')}
                         </Button>
+                    )}
+                    {favMensagem && (
+                        <p className={`small mb-2 ${favMensagem.includes('Erro') || favMensagem.includes('expirada') ? 'text-danger' : 'text-success'}`}>
+                            {favMensagem}
+                        </p>
                     )}
 
                     {/* Botão de test-drive — só se disponível e autenticado */}
                     {isLoggedIn && veiculo.estado === 'disponivel' && (
                         <Button
                             color="primary"
-                            className="mb-2"
+                            className="me-2 mb-2"
                             onClick={() => setMostrarTD(!mostrarTD)}
                         >
                             Agendar Test-Drive
                         </Button>
+                    )}
+
+                    {/* Pedido de informação — qualquer pessoa pode pedir */}
+                    {veiculo.estado !== 'vendido' && (
+                        <Button
+                            color="info"
+                            outline
+                            className="me-2 mb-2"
+                            onClick={() => setMostrarLead(!mostrarLead)}
+                        >
+                            Pedir Informação
+                        </Button>
+                    )}
+
+                    {/* Descarregar ficha técnica em PDF */}
+                    <Button
+                        color="secondary"
+                        outline
+                        className="mb-2"
+                        onClick={descarregarPDF}
+                    >
+                        📄 Ficha Técnica (PDF)
+                    </Button>
+
+                    {veiculo.estado === 'reservado' && (
+                        <p className="text-warning small mt-2 mb-0">
+                            ⚠ Este veículo está reservado para um test-drive. Não é possível agendar novos test-drives até que o atual termine.
+                        </p>
                     )}
 
                     {!isLoggedIn && (
@@ -303,6 +392,62 @@ export default function VehicleDetail() {
                     {tdMensagem && (
                         <p className={`mt-2 small ${tdMensagem.includes('sucesso') ? 'text-success' : 'text-danger'}`}>
                             {tdMensagem}
+                        </p>
+                    )}
+
+                    {/* Formulário de pedido de informação (Lead) */}
+                    {mostrarLead && (
+                        <Form onSubmit={submeterLead} className="mt-3 p-3 border rounded bg-light">
+                            <h6 className="fw-bold mb-3">Pedir Mais Informação</h6>
+                            <FormGroup>
+                                <Label>Nome</Label>
+                                <Input
+                                    type="text"
+                                    value={leadForm.nome}
+                                    onChange={e => setLeadForm({ ...leadForm, nome: e.target.value })}
+                                    required
+                                />
+                            </FormGroup>
+                            <FormGroup>
+                                <Label>Email</Label>
+                                <Input
+                                    type="email"
+                                    value={leadForm.email}
+                                    onChange={e => setLeadForm({ ...leadForm, email: e.target.value })}
+                                    required
+                                />
+                            </FormGroup>
+                            <FormGroup>
+                                <Label>Telefone <span className="text-muted small">(opcional)</span></Label>
+                                <Input
+                                    type="tel"
+                                    value={leadForm.telefone}
+                                    onChange={e => setLeadForm({ ...leadForm, telefone: e.target.value })}
+                                />
+                            </FormGroup>
+                            <FormGroup>
+                                <Label>Mensagem</Label>
+                                <Input
+                                    type="textarea"
+                                    rows="3"
+                                    value={leadForm.mensagem}
+                                    onChange={e => setLeadForm({ ...leadForm, mensagem: e.target.value })}
+                                    placeholder={`Olá, gostaria de saber mais sobre o ${veiculo.marca} ${veiculo.modelo}...`}
+                                    required
+                                />
+                            </FormGroup>
+                            <Button color="info" size="sm" type="submit" className="me-2">
+                                Enviar Pedido
+                            </Button>
+                            <Button color="secondary" size="sm" onClick={() => setMostrarLead(false)}>
+                                Cancelar
+                            </Button>
+                        </Form>
+                    )}
+
+                    {leadMensagem && (
+                        <p className={`mt-2 small ${leadMensagem.includes('enviado') ? 'text-success' : 'text-danger'}`}>
+                            {leadMensagem}
                         </p>
                     )}
                 </Col>

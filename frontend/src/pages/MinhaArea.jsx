@@ -38,7 +38,7 @@ export default function MinhaArea() {
 
     // Carrega os test-drives do utilizador autenticado
     useEffect(() => {
-        axios.get('api/testdrives/')
+        axios.get('/api/testdrives/')
             .then(res => {
                 setTestDrives(res.data);
                 setLoadingTD(false);
@@ -48,7 +48,7 @@ export default function MinhaArea() {
 
     // Carrega as reviews e filtra as do utilizador actual
     useEffect(() => {
-        axios.get('api/reviews/')
+        axios.get('/api/reviews/')
             .then(res => {
                 const minhas = res.data.filter(r => r.utilizador.username === username);
                 setReviews(minhas);
@@ -60,7 +60,7 @@ export default function MinhaArea() {
     // Elimina uma review pelo seu ID
     const eliminarReview = async (reviewId) => {
         try {
-            await axios.delete(`api/reviews/${reviewId}/`, {
+            await axios.delete(`/api/reviews/${reviewId}/`, {
                 headers: { 'X-CSRFToken': getCSRFToken() },
             });
             setReviews(prev => prev.filter(r => r.id !== reviewId));
