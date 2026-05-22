@@ -160,7 +160,7 @@ export default function VehicleDetail() {
                 { veiculo: parseInt(id), classificacao: novaClassif, comentario: novoComent },
                 { headers: { 'X-CSRFToken': getCSRFToken() } }
             );
-            setReviews([...reviews, res.data]);
+            setReviews(prev => [...prev, res.data]);
             setMinhaReview(res.data);
             setReviewMensagem('Avaliação submetida com sucesso!');
             setNovoComent('');
