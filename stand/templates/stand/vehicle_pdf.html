@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <title>Ficha Técnica — {{ veiculo.marca }} {{ veiculo.modelo }}</title>
+    <style>
+        body {
+            font-family: Helvetica, Arial, sans-serif;
+            font-size: 12px;
+            color: #222;
+            margin: 30px;
+        }
+        h1 {
+            font-size: 20px;
+            margin-bottom: 4px;
+            color: #1a1a2e;
+        }
+        .subtitulo {
+            color: #555;
+            font-size: 13px;
+            margin-bottom: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th {
+            background-color: #1a1a2e;
+            color: #fff;
+            text-align: left;
+            padding: 6px 10px;
+        }
+        td {
+            padding: 6px 10px;
+            border-bottom: 1px solid #ddd;
+        }
+        tr:nth-child(even) td {
+            background-color: #f5f5f5;
+        }
+        .estado {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .disponivel { background-color: #d4edda; color: #155724; }
+        .reservado  { background-color: #fff3cd; color: #856404; }
+        .vendido    { background-color: #e2e3e5; color: #383d41; }
+        .rodape {
+            margin-top: 30px;
+            font-size: 10px;
+            color: #999;
+            text-align: center;
+            border-top: 1px solid #ddd;
+            padding-top: 10px;
+        }
+        .preco {
+            font-size: 18px;
+            font-weight: bold;
+            color: #0d6efd;
+        }
+    </style>
+</head>
+<body>
+    <h1>{{ veiculo.marca }} {{ veiculo.modelo }} ({{ veiculo.ano }})</h1>
+    <p class="subtitulo">Ficha Técnica — AutoStand</p>
+
+    <table>
+        <tr>
+            <th colspan="2">Informação do Veículo</th>
+        </tr>
+        <tr>
+            <td><strong>Marca</strong></td>
+            <td>{{ veiculo.marca }}</td>
+        </tr>
+        <tr>
+            <td><strong>Modelo</strong></td>
+            <td>{{ veiculo.modelo }}</td>
+        </tr>
+        <tr>
+            <td><strong>Ano</strong></td>
+            <td>{{ veiculo.ano }}</td>
+        </tr>
+        <tr>
+            <td><strong>Quilometragem</strong></td>
+            <td>{{ veiculo.quilometragem }} km</td>
+        </tr>
+        <tr>
+            <td><strong>Preço</strong></td>
+            <td><span class="preco">{{ veiculo.preco }} €</span></td>
+        </tr>
+        <tr>
+            <td><strong>Estado</strong></td>
+            <td>
+                <span class="estado {{ veiculo.estado }}">
+                    {% if veiculo.estado == 'disponivel' %}Disponível
+                    {% elif veiculo.estado == 'reservado' %}Reservado
+                    {% else %}Vendido{% endif %}
+                </span>
+            </td>
+        </tr>
+        {% if veiculo.descricao %}
+        <tr>
+            <td><strong>Descrição</strong></td>
+            <td>{{ veiculo.descricao }}</td>
+        </tr>
+        {% endif %}
+        <tr>
+            <td><strong>Avaliação</strong></td>
+            <td>
+                {% if media %}
+                    {{ media }} / 5 estrelas ({{ total_reviews }} avaliações)
+                {% else %}
+                    Sem avaliações
+                {% endif %}
+            </td>
+        </tr>
+    </table>
+
+    <div class="rodape">
+        Documento gerado automaticamente pelo sistema AutoStand.
+        Sujeito a alterações sem aviso prévio.
+    </div>
+</body>
+</html>

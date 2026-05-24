@@ -9,6 +9,7 @@ class Vehicle(models.Model):
 
     STATUS_CHOICES = [
         ('disponivel', 'Disponível'),
+        ('reservado', 'Reservado'),
         ('vendido', 'Vendido'),
     ]
 
@@ -54,6 +55,32 @@ class TestDrive(models.Model):
     estado = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pendente')
     criado_em = models.DateTimeField(auto_now_add=True)
 
+    def clean(self):
+        # Só valida regras na criação (quando ainda não tem pk)
+        if not self.pk:
+            # Regra: não pode pedir test-drive para um carro vendido
+            if self.veiculo.estado == 'vendido':
+                raise ValidationError('Este veículo já foi vendido. Não é possível agendar test-drive.')
+
+            # Regra: data/hora tem de ser no futuro
+            from django.utils import timezone
+            if self.data_hora and self.data_hora <= timezone.now():
+                raise ValidationError({'data_hora': 'A data/hora do test-drive tem de ser no futuro.'})
+
+            # Regra: o mesmo utilizador não pode ter dois test-drives pendentes ou
+            # confirmados para o mesmo veículo
+            existe = TestDrive.objects.filter(
+                utilizador=self.utilizador,
+                veiculo=self.veiculo,
+                estado__in=['pendente', 'confirmado']
+            ).exists()
+            if existe:
+                raise ValidationError('Já tens um test-drive pendente ou confirmado para este veículo.')
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"TestDrive de {self.utilizador.username} - {self.veiculo} ({self.estado})"
 
@@ -72,7 +99,7 @@ class Purchase(models.Model):
             raise ValidationError('Este veículo já não está disponível para venda.')
 
     def save(self, *args, **kwargs):
-        self.full_clean() # Importante para chamar o clean()
+        self.full_clean()
         self.veiculo.estado = 'vendido'
         self.veiculo.save()
         super().save(*args, **kwargs)
@@ -123,6 +150,33 @@ class Review(models.Model):
         ordering = ['-criado_em']
         # Um utilizador só pode deixar uma review por veículo
         unique_together = ['utilizador', 'veiculo']
+
+
+class Lead(models.Model):
+    # Pedido de informação rápido sobre um veículo
+
+    STATUS_CHOICES = [
+        ('novo', 'Novo'),
+        ('contactado', 'Contactado'),
+        ('fechado', 'Fechado'),
+    ]
+
+    veiculo = models.ForeignKey(Vehicle, on_delete=models.CASCADE, related_name='leads')
+    utilizador = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True, related_name='leads'
+    )
+    nome = models.CharField(max_length=100)
+    email = models.EmailField()
+    telefone = models.CharField(max_length=30, blank=True)
+    mensagem = models.TextField()
+    estado = models.CharField(max_length=20, choices=STATUS_CHOICES, default='novo')
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Lead de {self.nome} - {self.veiculo} ({self.estado})"
+
+    class Meta:
+        ordering = ['-criado_em']
 
 
 class Favorite(models.Model):

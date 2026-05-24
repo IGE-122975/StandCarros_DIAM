@@ -6,6 +6,7 @@ app_name = 'stand'
 urlpatterns = [
 
     # ── Auth — igual ao padrão dos slides ─────
+    path('api/csrf/', views.csrf_view),
     path('api/signup/', views.signup),
     path('api/login/', views.login_view),
     path('api/logout/', views.logout_view),
@@ -30,4 +31,11 @@ urlpatterns = [
     # ── Favorites ─────────────────────────────
     path('api/favorites/', views.favorites),
     path('api/favorites/<int:pk>/', views.favorite_detail),
+
+    # ── Leads (Pedido de informação) ──────────
+    path('api/leads/', views.leads),
+    path('api/leads/<int:pk>/', views.lead_detail),
+
+    # ── PDF — ficha técnica ───────────────────
+    path('api/vehicles/<int:pk>/pdf/', views.vehicle_pdf),
 ]
