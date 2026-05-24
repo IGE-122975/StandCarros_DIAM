@@ -164,7 +164,12 @@ def testdrive_detail(request, pk):
             return Response({'msg': 'Sem permissão.'}, status=status.HTTP_403_FORBIDDEN)
 
         estado_anterior = testdrive.estado
-        serializer = TestDriveSerializer(testdrive, data=request.data, partial=True)
+        serializer = TestDriveSerializer(
+            testdrive,
+            data=request.data,
+            partial=True,
+            context={'request': request}
+        )
         if serializer.is_valid():
             serializer.save()
             testdrive.refresh_from_db()
