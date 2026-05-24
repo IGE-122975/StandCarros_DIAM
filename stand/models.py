@@ -29,7 +29,7 @@ class Vehicle(models.Model):
 
 
 class VehiclePhoto(models.Model):
-    # Modelo separado para suportar múltiplas fotos por veículo
+
     veiculo = models.ForeignKey(Vehicle, on_delete=models.CASCADE, related_name='fotos')
     foto = models.ImageField(upload_to='vehicles/')
     ordem = models.PositiveIntegerField(default=0)  # para ordenar as fotos
@@ -67,12 +67,12 @@ class Purchase(models.Model):
     data_compra = models.DateTimeField(auto_now_add=True)
 
     def clean(self):
-        # MELHORIA: Impede vender um carro que já está marcado como vendido
+
         if self.veiculo.estado == 'vendido' and not self.pk:
             raise ValidationError('Este veículo já não está disponível para venda.')
 
     def save(self, *args, **kwargs):
-        self.full_clean() # Importante para chamar o clean()
+        self.full_clean()
         self.veiculo.estado = 'vendido'
         self.veiculo.save()
         super().save(*args, **kwargs)
@@ -95,7 +95,7 @@ class Review(models.Model):
     criado_em = models.DateTimeField(auto_now_add=True)
 
     def clean(self):
-        # Validação: só pode criar review se tiver um TestDrive concluído OU uma compra registada
+
         tem_testdrive = TestDrive.objects.filter(
             utilizador=self.utilizador,
             veiculo=self.veiculo,
@@ -113,7 +113,7 @@ class Review(models.Model):
             )
 
     def save(self, *args, **kwargs):
-        self.full_clean()  # garante que clean() é sempre chamado ao guardar
+        self.full_clean()
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -121,12 +121,11 @@ class Review(models.Model):
 
     class Meta:
         ordering = ['-criado_em']
-        # Um utilizador só pode deixar uma review por veículo
         unique_together = ['utilizador', 'veiculo']
 
 
 class Favorite(models.Model):
-    # Tabela de relação explícita entre User e Vehicle (com timestamp)
+
     utilizador = models.ForeignKey(User, on_delete=models.CASCADE, related_name='favoritos')
     veiculo = models.ForeignKey(Vehicle, on_delete=models.CASCADE, related_name='favoritos')
     adicionado_em = models.DateTimeField(auto_now_add=True)
@@ -136,5 +135,4 @@ class Favorite(models.Model):
 
     class Meta:
         ordering = ['-adicionado_em']
-        # Um utilizador não pode adicionar o mesmo veículo aos favoritos duas vezes
         unique_together = ['utilizador', 'veiculo']

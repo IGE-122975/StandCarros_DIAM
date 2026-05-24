@@ -1,0 +1,147 @@
+.profile {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.profile-header {
+    text-align: center;
+    padding: 1.5rem 0;
+}
+
+.profile-header h1 {
+    margin: 0 0 0.25rem 0;
+    font-size: 2rem;
+    color: #1a1a1a;
+}
+
+.profile-header p {
+    margin: 0;
+    color: #666;
+}
+
+.profile-loading {
+    text-align: center;
+    padding: 3rem;
+    color: #666;
+}
+
+.profile-section {
+    background-color: #fff;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.profile-section h2 {
+    margin: 0 0 1rem 0;
+    font-size: 1.2rem;
+    color: #1a1a1a;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #eee;
+}
+
+.profile-empty {
+    color: #999;
+    text-align: center;
+    padding: 1rem;
+    margin: 0;
+    font-size: 0.95rem;
+}
+
+.profile-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.profile-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.85rem 1rem;
+    background-color: #fafafa;
+    border-radius: 8px;
+    text-decoration: none;
+    color: inherit;
+    transition: background-color 0.2s ease;
+}
+
+a.profile-item:hover {
+    background-color: #f0f0f0;
+}
+
+.profile-item-info {
+    flex: 1;
+}
+
+.profile-item-info h3 {
+    margin: 0 0 0.25rem 0;
+    font-size: 1rem;
+    color: #1a1a1a;
+}
+
+.profile-item-info p {
+    margin: 0;
+    color: #666;
+    font-size: 0.85rem;
+}
+
+.profile-item-arrow {
+    color: #ccc;
+    font-size: 1.5rem;
+    margin-left: 1rem;
+}
+
+/* Badges de estado */
+.badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+.badge-warning {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.badge-success {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.badge-info {
+    background-color: #d1ecf1;
+    color: #0c5460;
+}
+
+.badge-danger {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+/* Reviews */
+.profile-item-review {
+    flex-direction: column;
+    align-items: flex-start;
+    cursor: default;
+}
+
+.profile-item-review h3 {
+    color: #ffb400;
+    font-size: 1.1rem;
+}
+
+.profile-review-text {
+    color: #444 !important;
+    font-style: italic;
+    margin: 0.25rem 0 !important;
+    font-size: 0.95rem !important;
+}
+
+.profile-review-date {
+    font-size: 0.8rem !important;
+    color: #999 !important;
+}

@@ -7,6 +7,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
 
+
 from .models import Vehicle, VehiclePhoto, TestDrive, Purchase, Review, Favorite
 from .serializers import (
     VehicleSerializer, TestDriveSerializer, PurchaseSerializer,
@@ -14,9 +15,6 @@ from .serializers import (
 )
 
 
-# ─────────────────────────────────────────────
-# AUTH — igual ao padrão dos slides
-# ─────────────────────────────────────────────
 
 @api_view(['POST'])
 def signup(request):
@@ -46,7 +44,7 @@ def login_view(request):
 
     user = authenticate(request, username=username, password=password)
     if user is not None:
-        login(request, user)  # cria a sessão
+        login(request, user)
         return Response({
             'msg': 'Login efetuado com sucesso.',
             'username': user.username,
@@ -69,35 +67,12 @@ def user_view(request):
     return Response(serializer.data)
 
 
-# ─────────────────────────────────────────────
-# VEHICLES
-# ─────────────────────────────────────────────
+
 
 @api_view(['GET', 'POST'])
 def vehicles(request):
     if request.method == 'GET':
         qs = Vehicle.objects.all()
-
-        marca = request.query_params.get('marca')
-        modelo = request.query_params.get('modelo')
-        ano = request.query_params.get('ano')
-        preco_min = request.query_params.get('preco_min')
-        preco_max = request.query_params.get('preco_max')
-        estado = request.query_params.get('estado')
-
-        if marca:
-            qs = qs.filter(marca__icontains=marca)
-        if modelo:
-            qs = qs.filter(modelo__icontains=modelo)
-        if ano:
-            qs = qs.filter(ano=ano)
-        if preco_min:
-            qs = qs.filter(preco__gte=preco_min)
-        if preco_max:
-            qs = qs.filter(preco__lte=preco_max)
-        if estado:
-            qs = qs.filter(estado=estado)
-
         serializer = VehicleSerializer(qs, many=True)
         return Response(serializer.data)
 
@@ -147,9 +122,7 @@ def upload_photo(request, pk):
     return Response({'msg': 'Foto adicionada.'}, status=status.HTTP_201_CREATED)
 
 
-# ─────────────────────────────────────────────
-# TEST DRIVES
-# ─────────────────────────────────────────────
+
 
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
@@ -180,13 +153,22 @@ def testdrive_detail(request, pk):
         return Response(serializer.data)
 
     if request.method == 'PUT':
+        print("=== PUT recebido ===")
+        print("Utilizador:", request.user)
+        print("Is staff:", request.user.is_staff)
+        print("Data recebida:", request.data)
+        print("Estado antes:", testdrive.estado)
+
         if not request.user.is_staff:
+            print("BLOQUEADO: não é staff")
             return Response({'msg': 'Sem permissão.'}, status=status.HTTP_403_FORBIDDEN)
 
         estado_anterior = testdrive.estado
         serializer = TestDriveSerializer(testdrive, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
+            testdrive.refresh_from_db()
+            print("Guardado! Estado depois:", testdrive.estado)
             novo_estado = serializer.data['estado']
 
             if novo_estado != estado_anterior:
@@ -206,12 +188,8 @@ def testdrive_detail(request, pk):
                         fail_silently=True,
                     )
             return Response(serializer.data)
+        print("Serializer inválido:", serializer.errors)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-# ─────────────────────────────────────────────
-# PURCHASES
-# ─────────────────────────────────────────────
 
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
@@ -225,8 +203,6 @@ def purchases(request):
         return Response(serializer.data)
 
     if request.method == 'POST':
-        if not request.user.is_staff:
-            return Response({'msg': 'Sem permissão.'}, status=status.HTTP_403_FORBIDDEN)
         serializer = PurchaseSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
             serializer.save()
@@ -234,9 +210,7 @@ def purchases(request):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-# ─────────────────────────────────────────────
-# REVIEWS
-# ─────────────────────────────────────────────
+
 
 @api_view(['GET', 'POST'])
 def reviews(request):
@@ -268,9 +242,7 @@ def review_detail(request, pk):
     return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-# ─────────────────────────────────────────────
-# FAVORITES
-# ─────────────────────────────────────────────
+
 
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])

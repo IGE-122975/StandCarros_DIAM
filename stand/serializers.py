@@ -55,7 +55,7 @@ class TestDriveSerializer(serializers.ModelSerializer):
             'id', 'utilizador', 'veiculo', 'veiculo_detalhe',
             'data_hora', 'estado', 'criado_em'
         ]
-        read_only_fields = ['estado', 'criado_em']
+        read_only_fields = ['criado_em']
 
     def create(self, validated_data):
         utilizador = self.context['request'].user

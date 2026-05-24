@@ -1,0 +1,61 @@
+.va {
+    background-color: #fff;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.va-btn {
+    padding: 0.85rem 1rem;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s ease;
+    font-family: inherit;
+}
+
+.va-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.va-btn-primary {
+    background-color: #e63946;
+    color: #fff;
+}
+
+.va-btn-primary:hover:not(:disabled) {
+    background-color: #c92733;
+}
+
+.va-btn-secondary {
+    background-color: #f5f5f5;
+    color: #1a1a1a;
+    border: 1px solid #ddd;
+}
+
+.va-btn-secondary:hover:not(:disabled) {
+    background-color: #ebebeb;
+}
+
+.va-btn-favorited {
+    background-color: #ffe5e8;
+    color: #e63946;
+    border-color: #e63946;
+}
+
+.va-btn-favorited:hover:not(:disabled) {
+    background-color: #ffd1d6;
+}
+
+.va-hint {
+    margin: 0;
+    text-align: center;
+    color: #666;
+    font-size: 0.85rem;
+}
