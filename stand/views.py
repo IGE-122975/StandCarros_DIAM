@@ -376,8 +376,15 @@ def lead_detail(request, pk):
 def vehicle_pdf(request, pk):
     import io
     import os
-    from xhtml2pdf import pisa
     from django.conf import settings
+
+    try:
+        from xhtml2pdf import pisa
+    except ImportError:
+        return Response(
+            {'msg': 'Geração de PDF indisponível: dependência opcional "xhtml2pdf" não instalada.'},
+            status=status.HTTP_503_SERVICE_UNAVAILABLE
+        )
 
     veiculo = get_object_or_404(Vehicle, pk=pk)
     media = None
