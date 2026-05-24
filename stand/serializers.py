@@ -61,6 +61,22 @@ class TestDriveSerializer(serializers.ModelSerializer):
         utilizador = self.context['request'].user
         return TestDrive.objects.create(utilizador=utilizador, **validated_data)
 
+    def validate(self, value):
+        request = self.context.get('request')
+        if not request or self.instance is not None:
+            return value
+
+        utilizador = request.user
+        marcado = TestDrive.objects.filter(
+            utilizador=utilizador,
+            estado__in=['confirmado', 'pendente']
+        ).exists()
+
+        if marcado:
+            raise serializers.ValidationError(
+                {'veiculo': ['Já tem um test-drive pendente ou confirmado.']}
+            )
+        return value
 
 class PurchaseSerializer(serializers.ModelSerializer):
     utilizador = UserSerializer(read_only=True)

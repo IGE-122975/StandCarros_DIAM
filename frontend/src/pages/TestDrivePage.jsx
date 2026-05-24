@@ -34,7 +34,12 @@ const TestDrivePage = () => {
                 setTimeout(() => navigate('/'), 2000);
             })
             .catch(err => {
-                const msg = err.response?.data?.msg || 'Erro ao agendar test-drive.';
+                const data = err.response?.data;
+                const msg = data?.veiculo?.[0] ||
+                            data?.non_field_errors?.[0] ||
+                            data?.detail ||
+                            data?.msg || 'Erro ao agendar test-drive.';
+
                 setErro(msg);
             });
     };
