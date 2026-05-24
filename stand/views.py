@@ -153,7 +153,14 @@ def testdrive_detail(request, pk):
         return Response(serializer.data)
 
     if request.method == 'PUT':
+        print("=== PUT recebido ===")
+        print("Utilizador:", request.user)
+        print("Is staff:", request.user.is_staff)
+        print("Data recebida:", request.data)
+        print("Estado antes:", testdrive.estado)
+
         if not request.user.is_staff:
+            print("BLOQUEADO: não é staff")
             return Response({'msg': 'Sem permissão.'}, status=status.HTTP_403_FORBIDDEN)
 
         estado_anterior = testdrive.estado
@@ -161,6 +168,7 @@ def testdrive_detail(request, pk):
         if serializer.is_valid():
             serializer.save()
             testdrive.refresh_from_db()
+            print("Guardado! Estado depois:", testdrive.estado)
             novo_estado = serializer.data['estado']
 
             if novo_estado != estado_anterior:
@@ -180,6 +188,7 @@ def testdrive_detail(request, pk):
                         fail_silently=True,
                     )
             return Response(serializer.data)
+        print("Serializer inválido:", serializer.errors)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET', 'POST'])
